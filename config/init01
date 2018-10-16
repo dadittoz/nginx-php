@@ -1,0 +1,2 @@
+#chown -R core:core /data
+bash /config/copy-cron-config
