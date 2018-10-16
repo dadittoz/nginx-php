@@ -1,6 +1,6 @@
 # debian
 FROM debian:stretch-slim
-ENV PHP_VERSION=7.2
+ENV PHP_VERSION=5.6
 ARG DEBIAN_VERSION=stretch
 MAINTAINER dadittoz <daditto@gmail.com>
 ENV DEBIAN_FRONTEND noninteractive
