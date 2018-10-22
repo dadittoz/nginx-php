@@ -1,4 +1,0 @@
-rm -rf /etc/cron.d/*
-cp /data/config/cron-* /etc/cron.d
-chown root.root /etc/cron.d/*
-chmod 644 /etc/cron.d/*
