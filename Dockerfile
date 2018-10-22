@@ -1,4 +1,4 @@
-FROM dadittoz/nginx:v7.2
+FROM dadittoz/nginx-php:v7.2
 MAINTAINER daditto <daditto@gmail.com>
 ENV DEBIAN_FRONTEND noninteractive
 
