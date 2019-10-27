@@ -34,6 +34,9 @@ RUN apt-get update
 RUN apt-get install -y php-pear libmcrypt-dev libreadline-dev php${PHP_VERSION}-dev
 RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongo php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached
 #php-mcrypt
+RUN pecl config-set php_ini /etc/php/7.2/cli/php.ini
+RUN pecl config-set php_bin /usr/bin/php7.2
+RUN pear config-set php_suffix 7.2
 RUN pecl channel-update pecl.php.net
 RUN sed -i '639s/.*/$v_att_list = func_get_args();/' /usr/share/php/Archive/Tar.php
 #RUN pear install Archive_Tar
