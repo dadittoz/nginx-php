@@ -35,12 +35,16 @@ RUN apt-get update
 RUN apt-get install -y php-pear libmcrypt-dev libreadline-dev php${PHP_VERSION}-dev
 RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongo php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached
 RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}
+RUN echo "opcache.interned_strings_buffer=8 \n opcache.memory_consumption=128 \n opcache.huge_code_pages=on" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
 #php-mcrypt
 RUN pecl install mcrypt-1.0.3
 RUN echo "extension=mcrypt.so" > /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini
 RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/fpm/conf.d/20-mcrypt.ini
 RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/cli/conf.d/20-mcrypt.ini
-RUN echo "opcache.interned_strings_buffer=8 \n opcache.memory_consumption=128 \n opcache.huge_code_pages=on" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
+#phpredis
+RUN yes yes | pecl install redis
+RUN echo "extension=redis.so" > /etc/php/${PHP_VERSION}/mods-available/redis.ini
+
 
 # --------------
 # clean default configs and create dirs
