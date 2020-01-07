@@ -42,7 +42,7 @@ RUN echo "extension=mcrypt.so" > /etc/php/${PHP_VERSION}/mods-available/mcrypt.i
 RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/fpm/conf.d/20-mcrypt.ini
 RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/cli/conf.d/20-mcrypt.ini
 #phpredis
-RUN yes yes | pecl install redis
+RUN yes yes | pecl install redis-5.0.2
 RUN echo "extension=redis.so" > /etc/php/${PHP_VERSION}/mods-available/redis.ini
 
 
