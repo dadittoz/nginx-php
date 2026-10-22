@@ -1,15 +1,15 @@
 # debian
-FROM debian:stretch-slim
-ENV PHP_VERSION=7.2
-ENV PHP_PEAR_PHP_BIN="/usr/bin/php${PHP_VERSION}"
-ARG DEBIAN_VERSION=stretch
-MAINTAINER dadittoz <daditto@gmail.com>
-ENV DEBIAN_FRONTEND noninteractive
-ADD /etc/apt /etc/apt
+FROM debian:trixie-slim
+ENV PHP_VERSION=8.3
+ARG DEBIAN_VERSION=trixie
+LABEL maintainer="dadittoz <daditto@gmail.com>"
+ENV DEBIAN_FRONTEND=noninteractive
+# contrib + non-free for unrar
+RUN sed -i 's/^Components: main$/Components: main contrib non-free/' /etc/apt/sources.list.d/debian.sources
 RUN apt-get update && \
 	apt-get upgrade -y && \
-	apt-get install -y --no-install-recommends ca-certificates apt-transport-https lsb-release gnupg dirmngr gettext \
-		inotify-tools supervisor unrar unzip wget zip cron curl locales && \
+	apt-get install -y --no-install-recommends ca-certificates lsb-release gnupg gettext-base \
+		inotify-tools supervisor unrar unzip wget zip cron curl locales procps && \
 	echo -n > /var/lib/apt/extended_states
 RUN useradd -u 500 core
 
@@ -21,29 +21,21 @@ RUN dpkg-reconfigure locales
 
 # --------------
 # nginx
-#RUN rm -rf /etc/nginx/nginx.conf
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys ABF5BD827BD9BF62 && \
-        echo "deb http://www.nginx.org/packages/debian/ ${DEBIAN_VERSION} nginx" > /etc/apt/sources.list.d/nginx.list && \
-        apt-get install -y nginx && \
+RUN curl -fsSL https://nginx.org/keys/nginx_signing.key | gpg --dearmor -o /usr/share/keyrings/nginx-archive-keyring.gpg && \
+        echo "deb [signed-by=/usr/share/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian ${DEBIAN_VERSION} nginx" > /etc/apt/sources.list.d/nginx.list && \
+        apt-get update && apt-get install -y nginx && \
         echo -n > /var/lib/apt/extended_states
 
 # --------------
 # php
-RUN wget -O /etc/apt/trusted.gpg.d/php.gpg https://packages.sury.org/php/apt.gpg
-RUN echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/php.list
+RUN curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb && \
+        dpkg -i /tmp/debsuryorg-archive-keyring.deb && rm /tmp/debsuryorg-archive-keyring.deb && \
+        echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ ${DEBIAN_VERSION} main" > /etc/apt/sources.list.d/php.list
 RUN apt-get update
-RUN apt-get install -y php-pear libmcrypt-dev libreadline-dev php${PHP_VERSION}-dev libzip-dev libzstd-dev
-RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongo php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached php${PHP_VERSION}-bcmath php${PHP_VERSION}-gmp
+# same extension set as 7.2 image; mcrypt/redis now from sury packages instead of pecl, mongo -> mongodb
+RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongodb php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached php${PHP_VERSION}-bcmath php${PHP_VERSION}-gmp php${PHP_VERSION}-mcrypt
 RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}
 RUN echo "opcache.interned_strings_buffer=8 \n opcache.memory_consumption=128 \n opcache.huge_code_pages=on" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
-#php-mcrypt
-RUN pecl install mcrypt-1.0.3
-RUN echo "extension=mcrypt.so" > /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini
-RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/fpm/conf.d/20-mcrypt.ini
-RUN ln -s /etc/php/${PHP_VERSION}/mods-available/mcrypt.ini /etc/php/${PHP_VERSION}/cli/conf.d/20-mcrypt.ini
-#phpredis
-RUN yes yes | pecl install redis-5.0.2
-RUN echo "extension=redis.so" > /etc/php/${PHP_VERSION}/mods-available/redis.ini
 
 
 # --------------
@@ -64,13 +56,12 @@ RUN mv /etc/php-fpm/php-fpm.conf.new /etc/php-fpm/php-fpm.conf
 RUN rm -rf /etc/php/${PHP_VERSION}/fpm/pool.d
 RUN cp -rp /etc/php-fpm/* /etc/php/${PHP_VERSION}/fpm
 RUN rm -rf /etc/php-fpm
-#ADD usr /usr
 
 # --------------
 # nginx:config
 RUN echo "real_ip_header X-Forwarded-For;" | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
-RUN curl https://www.cloudflare.com/ips-v4 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
-RUN curl https://www.cloudflare.com/ips-v6 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
+RUN curl -fsSL https://www.cloudflare.com/ips-v4 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
+RUN curl -fsSL https://www.cloudflare.com/ips-v6 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
 
 # --------------
 # supervisor:config
@@ -81,7 +72,7 @@ RUN mv /etc/supervisor/conf.d/base-services.conf.new /etc/supervisor/conf.d/base
 # --------------
 # boot script
 RUN chmod +x /config/loop
-CMD /config/loop
+CMD ["/config/loop"]
 
 # --------------
 # clean up
