@@ -63,7 +63,10 @@ RUN rm -rf /etc/php-fpm
 
 # --------------
 # nginx:config
-RUN echo "real_ip_header X-Forwarded-For;" | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
+# Real client IP: every request arrives through Cloudflare -> traefik -> pod, and traefik replaces X-Forwarded-For
+# with the cluster gateway (10.32.0.1). Cloudflare's CF-Connecting-IP survives; trust it only from inside the cluster
+# (set_real_ip_from 10.0.0.0/8 in nginx-k8s-ips.conf) and Cloudflare's ranges (below).
+RUN echo "real_ip_header CF-Connecting-IP;" | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
 RUN curl -fsSL https://www.cloudflare.com/ips-v4 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
 RUN curl -fsSL https://www.cloudflare.com/ips-v6 | awk '{print "set_real_ip_from " $0 ";" }' | tee -a /etc/nginx/nginx.d/nginx-cloudflare-ips.conf
 
