@@ -1,7 +1,9 @@
 # debian
-FROM debian:trixie-slim
-ENV PHP_VERSION=8.3
-ARG DEBIAN_VERSION=trixie
+FROM debian:bookworm-slim
+# PHP 7.2 on Debian 12: sury 7.2.34-66+ has the PHP2Shell fix (CVE-2026-109618/9) backported from 8.2.35
+ENV PHP_VERSION=7.2
+ENV PHP_PEAR_PHP_BIN="/usr/bin/php${PHP_VERSION}"
+ARG DEBIAN_VERSION=bookworm
 LABEL maintainer="dadittoz <daditto@gmail.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 # contrib + non-free for unrar
@@ -32,8 +34,10 @@ RUN curl -fsSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/de
         dpkg -i /tmp/debsuryorg-archive-keyring.deb && rm /tmp/debsuryorg-archive-keyring.deb && \
         echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ ${DEBIAN_VERSION} main" > /etc/apt/sources.list.d/php.list
 RUN apt-get update
-# same extension set as 7.2 image; mcrypt/redis now from sury packages instead of pecl, mongo -> mongodb
-RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongodb php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached php${PHP_VERSION}-bcmath php${PHP_VERSION}-gmp php${PHP_VERSION}-mcrypt
+# same extension set as the stretch 7.2 image (+apcu-bc for the old apc module); mcrypt/redis now from sury packages instead of pecl, mongo -> mongodb
+RUN apt-get install -y php${PHP_VERSION}-cli php${PHP_VERSION}-curl php${PHP_VERSION}-fpm php${PHP_VERSION}-gd php${PHP_VERSION}-mysql php${PHP_VERSION}-mongodb php${PHP_VERSION}-redis php${PHP_VERSION}-xmlrpc php${PHP_VERSION}-apcu php${PHP_VERSION}-opcache php${PHP_VERSION}-mbstring php${PHP_VERSION}-intl php${PHP_VERSION}-imagick php${PHP_VERSION}-xml php${PHP_VERSION}-zip php${PHP_VERSION}-soap php${PHP_VERSION}-memcached php${PHP_VERSION}-bcmath php${PHP_VERSION}-gmp php${PHP_VERSION}-mcrypt php${PHP_VERSION}-apcu-bc
+# refuse to build without the PHP2Shell fix (slim images drop /usr/share/doc, so check the version)
+RUN dpkg --compare-versions "$(dpkg-query -W -f='${Version}' php${PHP_VERSION}-common)" ge 7.2.34-66
 RUN update-alternatives --set php /usr/bin/php${PHP_VERSION}
 RUN echo "opcache.interned_strings_buffer=8 \n opcache.memory_consumption=128 \n opcache.huge_code_pages=on" >> /etc/php/${PHP_VERSION}/mods-available/opcache.ini
 
